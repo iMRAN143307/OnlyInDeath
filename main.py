@@ -17,6 +17,9 @@ def resource_path(relative_path):
 
 async def main():
 
+    pygame.mixer.music.load(os.path.join("music.ogg"))
+    pygame.mixer.music.play(loops=-1, start=0.0)
+
     def load_and_scale(filename, size=None, transparency=None):
         if transparency is not None:
             unscaled = pygame.image.load(resource_path(f"{filename}.png")).convert_alpha()
@@ -27,9 +30,6 @@ async def main():
         else:
             return unscaled
 
-    def drawbattle(playerhp, enemies):
-        pass
-
     font = pygame.font.SysFont(None, 48)
 
     attack = load_and_scale("attack")
@@ -39,6 +39,8 @@ async def main():
     bg = load_and_scale("bg", (1280, 720))
     slime = load_and_scale("slime", None, True)
     player = load_and_scale("player", (75, 200), True)
+    skeleton = load_and_scale("skeleton", (40, 60), True)
+    ghoul = load_and_scale("ghoul", None, True)
 
     running = True
 
@@ -62,12 +64,12 @@ async def main():
 
     playermagicresource = 0 #name magic resource; DO NOT MAKE IT MANA
 
-    currentenemies = [["slime", 2, slime], ["slime", 2, slime]] #(enemy0, health, sprite)
+    currentenemies = [["slime", 2, slime]] #(enemy0, health, sprite)
 
     enemies = { #(STR, DEX, INT, CON), (basedmg, %ofSTR, %ofDEX, %ofINT), "attribute"
     "slime": ((1, 1, 1, 2), (1, 0.5, 0, 0), ""),
     "skeleton": ((2, 2, 1, 1), (1, 0, 1, 0), ""),
-    "ghoul": ((1, 3, 2, 1), (2, 0, 0, 0.5), "tough")
+    "ghoul": ((1, 2, 2, 2), (2, 0, 0, 0.5), "tough")
     }
 
     attributes = [
@@ -96,8 +98,33 @@ async def main():
 
     }
 
+    lupoption = 0
+    shoption = -1
 
     clock = pygame.time.Clock()
+
+    def generate(round):
+        le = []
+        if round < 5:
+            var = random.choice([["slime", 0, slime], ["slime", 0, slime], ["skeleton", 0, skeleton]])
+            le.append(var)
+        elif round < 10:
+            var = random.choice([["slime", 0, slime], ["slime", 0, slime], ["skeleton", 0, skeleton]])
+            le.append(var)
+            var = random.choice([["slime", 0, slime], ["skeleton", 0, skeleton], ["ghoul", 0, ghoul]])
+            le.append(var)
+        else:
+            var = random.choice([["slime", 0, slime], ["slime", 0, slime], ["skeleton", 0, skeleton], ["ghoul", 0, ghoul]])
+            le.append(var)
+            var = random.choice([["slime", 0, slime], ["slime", 0, slime], ["skeleton", 0, skeleton], ["ghoul", 0, ghoul]])
+            le.append(var)
+            var = random.choice([["slime", 0, slime], ["skeleton", 0, skeleton], ["ghoul", 0, ghoul]])
+            le.append(var)
+
+        for enemy in le:
+            enemy[1] = max(enemies[enemy[0]][0][3] * (round//3), 1)
+
+        return le
 
     while running:
 
@@ -118,11 +145,112 @@ async def main():
             if event.type == pygame.QUIT:
                 running = False
 
-        if mode == "enemyturn":
+        if mode == "shop":
+            if shoption == -1:
+                shoption = 0
+                shopitem = random.choice(["stick", "stick", "stick", "shortsword", "shortsword", "shortbow", "shortbow", "wand", "wand", "staff", "longbow", "longsword"])
+            keys = pygame.key.get_pressed()
+            if (keys[pygame.K_a] or keys[pygame.K_LEFT]) and keydelay == 0:
+                shoption = (shoption - 1) % 4
+                keydelay = 60
+            elif (keys[pygame.K_d] or keys[pygame.K_RIGHT]) and keydelay == 0:
+                shoption = (shoption + 1) % 4
+                keydelay = 60
+            elif keys[pygame.K_SPACE] and keydelay == 0:
+                keydelay = 60
+                if len(playerweapons) <= 4 and shoption == 0:
+                    playerweapons.append(shopitem)
+                shoption = -1
+                currentenemies = generate(round)
+                mode = "playerturn"
+
+            if shoption == 0:
+                text_surface = font.render("Yes", True, (255, 255, 255))
+                text_rect = text_surface.get_rect(center=(200, 600))
+                screen.blit(text_surface, text_rect)
+            elif shoption == 1:
+                text_surface = font.render("No", True, (255, 255, 255))
+                text_rect = text_surface.get_rect(center=(1000, 600))
+                screen.blit(text_surface, text_rect)
+
+            text_surface = font.render(shopitem, True, (255, 255, 255))
+            text_rect = text_surface.get_rect(center=(600, 600))
+            screen.blit(text_surface, text_rect)
+
+
+        elif mode == "levelup":
+
+            keys = pygame.key.get_pressed()
+            if (keys[pygame.K_a] or keys[pygame.K_LEFT]) and keydelay == 0:
+                lupoption = (lupoption - 1) % 4
+                keydelay = 60
+            elif (keys[pygame.K_d] or keys[pygame.K_RIGHT]) and keydelay == 0:
+                lupoption = (lupoption + 1) % 4
+                keydelay = 60
+            elif keys[pygame.K_SPACE] and keydelay == 0:
+                keydelay = 60
+                round += 1
+                if lupoption == 0:
+                    playerstats["STR"] += 1
+                elif lupoption == 1:
+                    playerstats["DEX"] += 1
+                elif lupoption == 2:
+                    playerstats["INT"] += 1
+                elif lupoption == 3:
+                    playerstats["CON"] += 1
+                playerhp += playerstats["CON"]
+                mode = "shop"
+
+            text_surface = font.render("Level Up!", True, (255, 255, 255))
+            text_rect = text_surface.get_rect(center=(630, 500))
+            screen.blit(text_surface, text_rect)
+
+            if lupoption == 0:
+                colour = (255, 255, 0)
+            else:
+                colour = (255, 255, 255)
+
+            text_surface = font.render(f"STR: {playerstats["STR"]}", True, colour)
+            text_rect = text_surface.get_rect(center=(300, 600))
+            screen.blit(text_surface, text_rect)
+
+            if lupoption == 1:
+                colour = (255, 255, 0)
+            else:
+                colour = (255, 255, 255)
+
+            text_surface = font.render(f"DEX: {playerstats["DEX"]}", True, colour)
+            text_rect = text_surface.get_rect(center=(500, 600))
+            screen.blit(text_surface, text_rect)
+
+            if lupoption == 2:
+                colour = (255, 255, 0)
+            else:
+                colour = (255, 255, 255)
+
+            text_surface = font.render(f"INT: {playerstats["INT"]}", True, colour)
+            text_rect = text_surface.get_rect(center=(700, 600))
+            screen.blit(text_surface, text_rect)
+
+            if lupoption == 3:
+                colour = (255, 255, 0)
+            else:
+                colour = (255, 255, 255)
+
+            text_surface = font.render(f"CON: {playerstats["CON"]}", True, colour)
+            text_rect = text_surface.get_rect(center=(900, 600))
+            screen.blit(text_surface, text_rect)
+
+        elif mode == "enemyturn":
             for enemy in currentenemies:
                 enemydmgs = enemies[enemy[0]][1]
                 enemystats = enemies[enemy[0]][0]
                 playerhp -= (enemydmgs[0] + enemydmgs[1] * enemystats[0] + enemystats[1] * enemydmgs[2] + enemydmgs[3] * enemystats[2])
+            if playerhp <= 0:
+                text_surface = font.render("You Are Dead", True, (255, 255, 255))
+                text_rect = text_surface.get_rect(center=(640, 360))
+                screen.blit(text_surface, text_rect)
+                running = False
             mode = "playerturn"
 
         elif mode == "attackoptions":
