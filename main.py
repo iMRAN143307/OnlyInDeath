@@ -46,7 +46,7 @@ async def main():
 
     round = 0
 
-    keydelay = 60
+    keydelay = 30
 
     playerstats = {"STR": 0, "DEX": 0, "INT": 0, "CON": 0}
 
@@ -83,6 +83,8 @@ async def main():
     battleoptions = ["attack", "skill", "item", "forfeit"] #maybe add some bonus when you forfeit to encourage players to forfeit and then bounce back
 
     battleoption = 0
+
+    weaponoption = 0
 
     weapons = { #weapon: (basedmg, %ofSTR, %ofDEX, %ofINT, (skillsgiven))
         "stick": (1, 0, 0, 0, ()),
@@ -152,12 +154,12 @@ async def main():
             keys = pygame.key.get_pressed()
             if (keys[pygame.K_a] or keys[pygame.K_LEFT]) and keydelay == 0:
                 shoption = (shoption - 1) % 4
-                keydelay = 60
+                keydelay = 30
             elif (keys[pygame.K_d] or keys[pygame.K_RIGHT]) and keydelay == 0:
                 shoption = (shoption + 1) % 4
-                keydelay = 60
+                keydelay = 30
             elif keys[pygame.K_SPACE] and keydelay == 0:
-                keydelay = 60
+                keydelay = 30
                 if len(playerweapons) <= 4 and shoption == 0:
                     playerweapons.append(shopitem)
                 shoption = -1
@@ -183,12 +185,12 @@ async def main():
             keys = pygame.key.get_pressed()
             if (keys[pygame.K_a] or keys[pygame.K_LEFT]) and keydelay == 0:
                 lupoption = (lupoption - 1) % 4
-                keydelay = 60
+                keydelay = 30
             elif (keys[pygame.K_d] or keys[pygame.K_RIGHT]) and keydelay == 0:
                 lupoption = (lupoption + 1) % 4
-                keydelay = 60
+                keydelay = 30
             elif keys[pygame.K_SPACE] and keydelay == 0:
-                keydelay = 60
+                keydelay = 30
                 round += 1
                 if lupoption == 0:
                     playerstats["STR"] += 1
@@ -255,7 +257,7 @@ async def main():
 
         elif mode == "attackoptions":
             for i, weapon in enumerate(playerweapons):
-                if i == battleoption:
+                if i == weaponoption:
                     colour = (255, 255, 0)
                 else:
                     colour = (255, 255, 255)
@@ -265,18 +267,18 @@ async def main():
 
             keys = pygame.key.get_pressed()
             if (keys[pygame.K_a] or keys[pygame.K_LEFT]) and keydelay == 0:
-                battleoption = (battleoption - 1) % len(playerweapons)
-                keydelay = 60
+                weaponoption = (weaponoption - 1) % len(playerweapons)
+                keydelay = 30
             elif (keys[pygame.K_d] or keys[pygame.K_RIGHT]) and keydelay == 0:
-                battleoption = (battleoption + 1) % len(playerweapons)
-                keydelay = 60
+                weaponoption = (weaponoption + 1) % len(playerweapons)
+                keydelay = 30
             elif keys[pygame.K_SPACE] and keydelay == 0:
                 enemyselected = random.choice(range(len(currentenemies))) #check for off by one
-                weaponstats = weapons[playerweapons[battleoption]]
+                weaponstats = weapons[playerweapons[weaponoption]]
                 currentenemies[enemyselected][1] -= (weaponstats[0] + weaponstats[1]*playerstats["STR"] + weaponstats[2]*playerstats["DEX"] + weaponstats[3]*playerstats["INT"])
                 if currentenemies[enemyselected][1] <= 0:
                     currentenemies.remove(currentenemies[enemyselected])
-                keydelay = 60
+                keydelay = 30
 
                 if currentenemies == []:
                     mode = "levelup"
@@ -289,10 +291,10 @@ async def main():
             keys = pygame.key.get_pressed()
             if (keys[pygame.K_a] or keys[pygame.K_LEFT]) and keydelay == 0:
                 battleoption = (battleoption - 1) % 4
-                keydelay = 60
+                keydelay = 30
             elif (keys[pygame.K_d] or keys[pygame.K_RIGHT]) and keydelay == 0:
                 battleoption = (battleoption + 1) % 4
-                keydelay = 60
+                keydelay = 30
             elif keys[pygame.K_SPACE] and keydelay == 0:
                 if battleoptions[battleoption] == "attack" and playerweapons != []:
                     mode = "attackoptions"
@@ -302,7 +304,7 @@ async def main():
                     mode = "itemoptions"
                 elif battleoptions[battleoption] == "forfeit":
                     pass
-                keydelay = 60
+                keydelay = 30
 
             screen.blit(attack, (230, 540))
             screen.blit(skill, (455, 540))
